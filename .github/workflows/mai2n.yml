@@ -1,0 +1,38 @@
+name: Isaac Sim Downloader to Release
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # برای اینکه بتونه فایل رو توی Release آپلود کنه
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+
+      - name: Login to NVIDIA NGC
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_API_KEY }}
+
+      - name: Pull Isaac Sim
+        run: docker pull nvcr.io/nvidia/isaac-sim:4.0.0
+
+      - name: Save and Split Image
+        run: |
+          mkdir parts
+          docker save nvcr.io/nvidia/isaac-sim:4.0.0 | split -b 1024M - parts/isaac_sim_4.0.tar.part_
+
+      - name: Create Release and Upload Parts
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v4.0.0-isaac
+          files: parts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
