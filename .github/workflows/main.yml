@@ -1,0 +1,35 @@
+name: Download and Split Isaac Sim
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDATA_BIN"
+
+      - name: Login to NVIDIA Container Registry
+        run: |
+          echo "${{ secrets.NGC_API_KEY }}" | docker login nvcr.io -u '$oauthtoken' --password-stdin
+
+      - name: Pull and Save Isaac Sim
+        run: |
+          docker pull nvcr.io/nvidia/isaac-sim:4.0.0
+          docker save nvcr.io/nvidia/isaac-sim:4.0.0 -o isaac_sim_4.0.tar
+
+      - name: Split File
+        run: |
+          mkdir parts
+          split -b 1024M isaac_sim_4.0.tar parts/isaac_sim_part_
+
+      - name: Upload Parts
+        uses: actions/upload-artifact@v4
+        with:
+          name: isaac-sim-parts
+          path: parts/*
