@@ -1,0 +1,52 @@
+name: Isaac Sim Downloader
+
+on:
+  workflow_dispatch: # اجرای دستی
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # این خیلی مهمه برای ساخت Release
+
+    steps:
+    - name: Free Disk Space
+      uses: jlumbroso/free-disk-space@v1.3.1
+      with:
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        swap-storage: true
+
+    - name: Download File
+      run: |
+        # اینجا دستور دانلود فایل خودت رو بذار (مثلاً از انویدیا)
+        # من فرض می‌کنم فایل نهایی اسمش isaac-sim.tar هست
+        # wget -O isaac-sim.tar "URL_DOWNLOAD" 
+        echo "شروع دانلود..."
+        # فعلاً فرض میکنیم فایل آماده است
+
+    - name: Split and Prepare Parts
+      run: |
+        # تقسیم فایل به پارت‌های ۱۸۰۰ مگابایتی برای دور زدن محدودیت ۲ گیگی گیت‌هاب
+        split -b 1700M isaac-sim.tar "isaac-sim.part-"
+        ls -lh # نمایش لیست فایل‌ها برای اطمینان
+
+    - name: Create Release and Upload
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: Isaac Sim Download - Build ${{ github.run_number }}
+        draft: false
+        prerelease: false
+        files: |
+          isaac-sim.part-*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload to Transfer.sh (Alternative Link)
+      run: |
+        # یه لینک کمکی که اگه ریلیز به هر دلیلی اذیت کرد داشته باشی
+        curl --upload-file ./isaac-sim.tar https://transfer.sh/isaac-sim.tar
